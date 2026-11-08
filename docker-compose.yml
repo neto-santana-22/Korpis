@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  korpis-db:
+    image: postgres:16-alpine
+    container_name: korpis-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: korpis_user
+      POSTGRES_PASSWORD: korpis_password
+      POSTGRES_DB: korpis_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

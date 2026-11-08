@@ -1,0 +1,13 @@
+# Pastas de compilacao do .NET
+**/bin/
+**/obj/
+
+# Configuracoes da IDE e ambiente local
+.vscode/
+.idea/
+*.user
+*.suo
+appsettings.Development.json
+
+# Dependencias do Frontend
+**/node_modules/
