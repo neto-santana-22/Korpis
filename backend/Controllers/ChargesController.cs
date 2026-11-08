@@ -1,3 +1,4 @@
+using backend.Domain.DTOs;
 using backend.Domain.Entities;
 using backend.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,17 @@ public class ChargesController : ControllerBase
 {
     private readonly IChargeRepository _chargeRepository;
     private readonly IClientRepository _clientRepository;
+    private readonly IPaymentService _paymentService;
 
-    public ChargesController(IChargeRepository chargeRepository, IClientRepository clientRepository)
+    // Injecao de dependencia dos repositorios e do servico de pagamentos
+    public ChargesController(
+        IChargeRepository chargeRepository,
+        IClientRepository clientRepository,
+        IPaymentService paymentService)
     {
         _chargeRepository = chargeRepository;
         _clientRepository = clientRepository;
+        _paymentService = paymentService;
     }
 
     // GET: api/charges - Listar todas as cobrancas
@@ -44,19 +51,24 @@ public class ChargesController : ControllerBase
         return Ok(charges);
     }
 
-    // POST: api/charges - Criar nova cobranca
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] Charge charge)
+    // POST: api/charges/generate - Gerar nova cobranca com integracao Pix/Boleto
+    [HttpPost("generate")]
+    public async Task<IActionResult> GeneratePayment([FromBody] CreateChargeDto dto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Valida se o cliente informado realmente existe antes de vincular a cobranca
-        var clientExists = await _clientRepository.GetByIdAsync(charge.ClientId);
-        if (clientExists == null)
+        // Valida a existencia do cliente
+        var client = await _clientRepository.GetByIdAsync(dto.ClientId);
+        if (client == null)
             return BadRequest(new { message = "O Cliente informado para a cobranca nao existe." });
 
+        // Chama o servico de pagamento para gerar o QR Code Pix e dados externos
+        var charge = await _paymentService.GeneratePaymentAsync(client, dto);
+
+        // Persiste a nova cobranca no banco de dados PostgreSQL
         await _chargeRepository.AddAsync(charge);
+
         return CreatedAtAction(nameof(GetById), new { id = charge.Id }, charge);
     }
 

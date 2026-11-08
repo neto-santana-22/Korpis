@@ -1,6 +1,7 @@
 using backend.Domain.Interfaces;
 using backend.Infrastructure.Data;
 using backend.Infrastructure.Repositories;
+using backend.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Registro dos repositorios de dados na injecao de dependencia
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
+
+// Registro do servico de pagamentos (Mock para ambiente de desenvolvimento)
+builder.Services.AddScoped<IPaymentService, MockPaymentService>();
 
 // Registra os controllers e os servicos de documentacao do Swagger
 builder.Services.AddControllers();
