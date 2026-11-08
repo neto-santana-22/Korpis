@@ -7,18 +7,26 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configura o DbContext para utilizar o provedor PostgreSQL (Npgsql)
+// Configuração de CORS permissiva para ambiente de desenvolvimento local
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// DbContext PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Registro dos repositorios de dados na injecao de dependencia
+// Injeção de Dependências
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
-
-// Registro do servico de pagamentos (Mock para ambiente de desenvolvimento)
 builder.Services.AddScoped<IPaymentService, MockPaymentService>();
 
-// Configura os Controllers tratando o ciclo de referencia via System.Text.Json
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -30,7 +38,9 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Habilita a interface grafica do Swagger apenas no ambiente de desenvolvimento
+// O Middleware de CORS DEVE ficar no topo da pipeline de HTTP
+app.UseCors("AllowFrontend");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

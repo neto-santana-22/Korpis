@@ -12,7 +12,7 @@ export const ClientsManager: React.FC = () => {
         phone: '',
     });
 
-    // Busca a lista de clientes no backend .NET 8
+    // Busca a lista inicial de clientes cadastrados no backend .NET 8
     const fetchClients = async () => {
         try {
             setLoading(true);
@@ -29,13 +29,18 @@ export const ClientsManager: React.FC = () => {
         fetchClients();
     }, []);
 
-    // Trata a submissao do formulario de novo cliente
+    // Trata a submissao do formulario com atualizacao instantanea da UI
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/clients', formData);
+            // Envia os dados para a API e obtém a entidade com o ID gerado pelo Postgres
+            const response = await api.post<Client>('/clients', formData);
+
+            // Atualiza a tabela instantaneamente no estado do React
+            setClients((prevClients) => [...prevClients, response.data]);
+
+            // Reseta os campos do formulario
             setFormData({ name: '', document: '', email: '', phone: '' });
-            await fetchClients();
         } catch (error) {
             console.error('Erro ao cadastrar cliente:', error);
         }
