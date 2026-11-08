@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using backend.Domain.Interfaces;
 using backend.Infrastructure.Data;
 using backend.Infrastructure.Repositories;
@@ -17,8 +18,13 @@ builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
 // Registro do servico de pagamentos (Mock para ambiente de desenvolvimento)
 builder.Services.AddScoped<IPaymentService, MockPaymentService>();
 
-// Registra os controllers e os servicos de documentacao do Swagger
-builder.Services.AddControllers();
+// Configura os Controllers tratando o ciclo de referencia via System.Text.Json
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
