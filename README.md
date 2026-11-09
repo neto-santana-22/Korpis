@@ -1,12 +1,17 @@
-KORPIS — Plataforma SaaS de Gestão Financeira e Cobranças (MVP)
+# KORPIS — Plataforma SaaS de Gestão Financeira e Cobranças (MVP)
+
 
 Status do Projeto: MVP Concluído e Estável
 
+
 Arquitetura: SPA Desacoplada + API RESTful
+
 
 Padrão Visual: Tema Claro (Light Mode Corporativo)
 
+
 Visão Geral do Sistema
+
 
 O Korpis é uma plataforma SaaS corporativa desenvolvida para o gerenciamento centralizado de carteiras de clientes, emissão automatizada de cobranças via Pix e acompanhamento sintético de métricas financeiras em tempo real.
 
@@ -22,7 +27,11 @@ Ferramentas & Versionamento
 
 Arquitetura & Decisões Técnicas
 
+
+
+
 A aplicação é dividida em duas camadas independentes que se comunicam estritamente via HTTP/REST utilizando JSON:
+
 
 Backend (API RESTful)
 
@@ -46,7 +55,9 @@ Navegação: Sidebar Deslizante (Drawer via botão Hamburger ☰)
 
 Integração HTTP: Axios com interceptor de autorização automática (Bearer Token)
 
-Estrutura do Repositório
+
+# Estrutura do Repositório
+
 
 Diretório / Arquivo
 
@@ -106,17 +117,17 @@ Orquestração do banco de dados PostgreSQL em ambiente conteinerizado
 
 README.md
 
-Documentação oficial do projeto Korpis
 
-Especificação de Funcionalidades
+# 1. Autenticação & Segurança
 
-1. Autenticação & Segurança
 
 Formulário de Login corporativo com validação de credenciais.
 
 Geração e validação de token JWT (Bearer Auth).
 
-2. Gestão de Clientes
+
+# 2. Gestão de Clientes
+
 
 Cadastro completo de clientes (Nome/Razão Social, CPF/CNPJ, E-mail, Telefone).
 
@@ -124,7 +135,9 @@ Busca dinamicamente filtrada em tempo real por nome ou documento.
 
 Edição e remoção de cadastros.
 
-3. Cobranças & Pagamentos Pix
+
+# 3. Cobranças & Pagamentos Pix
+
 
 Emissão de cobranças vinculadas ao cliente.
 
@@ -134,7 +147,9 @@ Filtros por status: Todas, Pendentes, Pagas e Canceladas.
 
 Ações rápidas para Simular Baixa (Pagamento) ou Cancelar Cobrança.
 
-4. Dashboard Financeiro
+
+# 4. Dashboard Financeiro
+
 
 Cartões sintéticos de métricas em tempo real:
 
