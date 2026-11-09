@@ -1,29 +1,4 @@
-// Enum de status da cobranca mapeado exatamente com os valores do C#
-export const ChargeStatus = {
-    Pending: 1,
-    Paid: 2,
-    Canceled: 3,
-    Overdue: 4,
-} as const;
-
-export type ChargeStatus = typeof ChargeStatus[keyof typeof ChargeStatus];
-
-// Modelo correspondente a entidade Charge do backend .NET
-export interface Charge {
-    id: string;
-    amount: number;
-    description: string;
-    dueDate: string;
-    status: ChargeStatus;
-    externalId: string;
-    pixQrCode: string;
-    paymentUrl: string;
-    createdAt: string;
-    paidAt?: string | null;
-    clientId: string;
-}
-
-// Modelo correspondente a entidade Client do backend .NET
+// Entidade de Cliente
 export interface Client {
     id: string;
     name: string;
@@ -31,13 +6,54 @@ export interface Client {
     email: string;
     phone: string;
     createdAt: string;
-    charges?: Charge[];
 }
 
-// DTO para envio de dados ao gerar nova cobranca
+// DTO para criacao de Cliente
+export interface CreateClientDto {
+    name: string;
+    document: string;
+    email: string;
+    phone: string;
+}
+
+// Status de Cobranca (Enum do backend)
+export const ChargeStatus = {
+    Pending: 1,
+    Paid: 2,
+    Canceled: 3,
+    Overdue: 4,
+} as const;
+
+export type ChargeStatusType = typeof ChargeStatus[keyof typeof ChargeStatus];
+
+// Entidade de Cobranca
+export interface Charge {
+    id: string;
+    clientId: string;
+    client?: Client;
+    amount: number;
+    description: string;
+    dueDate: string;
+    status: ChargeStatusType;
+    externalId: string;
+    pixQrCode: string;
+    paymentUrl: string;
+    paidAt?: string;
+    createdAt: string;
+}
+
+// DTO para geracao de Cobranca
 export interface CreateChargeDto {
     clientId: string;
     amount: number;
     description: string;
     dueDate: string;
+}
+
+// DTO de metricas consolidadas do Dashboard
+export interface DashboardMetrics {
+    totalClients: number;
+    totalCharges: number;
+    totalReceivedAmount: number;
+    totalPendingAmount: number;
 }
