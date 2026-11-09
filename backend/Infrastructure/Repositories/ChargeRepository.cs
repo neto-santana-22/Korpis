@@ -3,65 +3,45 @@ using backend.Domain.Interfaces;
 using backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace backend.Infrastructure.Repositories;
-
-// Implementacao concreta do repositorio de cobrancas utilizando Entity Framework Core
-public class ChargeRepository : IChargeRepository
+namespace backend.Infrastructure.Repositories
 {
-    private readonly AppDbContext _context;
-
-    public ChargeRepository(AppDbContext context)
+    // Implementacao do repositorio de cobrancas com Entity Framework Core
+    public class ChargeRepository : IChargeRepository
     {
-        _context = context;
-    }
+        private readonly AppDbContext _context;
 
-    // Retorna todas as cobrancas incluindo a entidade Client vinculada
-    public async Task<IEnumerable<Charge>> GetAllAsync()
-    {
-        return await _context.Charges
-            .Include(c => c.Client)
-            .AsNoTracking()
-            .ToListAsync();
-    }
-
-    // Busca uma cobranca especifica pelo ID primario incluindo dados do cliente
-    public async Task<Charge?> GetByIdAsync(Guid id)
-    {
-        return await _context.Charges
-            .Include(c => c.Client)
-            .FirstOrDefaultAsync(c => c.Id == id);
-    }
-
-    // Retorna a lista de cobrancas de um determinado cliente
-    public async Task<IEnumerable<Charge>> GetByClientIdAsync(Guid clientId)
-    {
-        return await _context.Charges
-            .Where(c => c.ClientId == clientId)
-            .AsNoTracking()
-            .ToListAsync();
-    }
-
-    // Adiciona a cobranca ao DbContext e salva no PostgreSQL
-    public async Task AddAsync(Charge charge)
-    {
-        await _context.Charges.AddAsync(charge);
-        await _context.SaveChangesAsync();
-    }
-
-    // Persiste as alteracoes de status, valor ou datas da cobranca
-    public async Task UpdateAsync(Charge charge)
-    {
-        _context.Charges.Update(charge);
-        await _context.SaveChangesAsync();
-    }
-
-    // Remove o registro da cobranca do banco
-    public async Task DeleteAsync(Guid id)
-    {
-        var charge = await GetByIdAsync(id);
-        if (charge != null)
+        public ChargeRepository(AppDbContext context)
         {
-            _context.Charges.Remove(charge);
+            _context = context;
+        }
+
+        // Busca todas as cobrancas incluindo os dados do cliente associado
+        public async Task<IEnumerable<Charge>> GetAllAsync()
+        {
+            return await _context.Charges
+                .Include(c => c.Client)
+                .ToListAsync();
+        }
+
+        // Busca uma cobranca especifica pelo seu ID unico
+        public async Task<Charge?> GetByIdAsync(Guid id)
+        {
+            return await _context.Charges
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(c => c.Id == id);
+        }
+
+        // Adiciona e persiste uma nova cobranca no PostgreSQL
+        public async Task AddAsync(Charge charge)
+        {
+            await _context.Charges.AddAsync(charge);
+            await _context.SaveChangesAsync();
+        }
+
+        // Atualiza os dados de uma cobranca existente
+        public async Task UpdateAsync(Charge charge)
+        {
+            _context.Charges.Update(charge);
             await _context.SaveChangesAsync();
         }
     }

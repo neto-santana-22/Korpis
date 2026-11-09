@@ -39,7 +39,7 @@ export const ChargesManager: React.FC = () => {
         loadData();
     }, []);
 
-    // Submete a geracao de nova cobranca via API
+    // Submete a geracao de nova cobranca
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -49,7 +49,7 @@ export const ChargesManager: React.FC = () => {
                 dueDate: new Date(formData.dueDate).toISOString(),
             });
 
-            // Exibe a chave Pix gerada pelo MockPaymentService
+            // Exibe o codigo Pix gerado
             setSelectedPix(response.data.pixQrCode);
             setFormData({
                 clientId: clients[0]?.id || '',
@@ -60,6 +60,16 @@ export const ChargesManager: React.FC = () => {
             await loadData();
         } catch (error) {
             console.error('Erro ao gerar cobranca:', error);
+        }
+    };
+
+    // Simula o recebimento do Webhook e baixa do pagamento
+    const handleSimulatePayment = async (chargeId: string) => {
+        try {
+            await api.post(`/charges/${chargeId}/pay`);
+            await loadData();
+        } catch (error) {
+            console.error('Erro ao simular pagamento:', error);
         }
     };
 
@@ -125,7 +135,7 @@ export const ChargesManager: React.FC = () => {
                 </button>
             </form>
 
-            {/* Exibicao do Pix Copia e Cola gerado */}
+            {/* Modal/Caixa exibindo o Pix gerado */}
             {selectedPix && (
                 <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', padding: '15px', marginBottom: '20px', borderRadius: '4px' }}>
                     <h3>Pix Gerado com Sucesso!</h3>
@@ -135,7 +145,7 @@ export const ChargesManager: React.FC = () => {
                 </div>
             )}
 
-            {/* Tabela de Historico de Cobrancas */}
+            {/* Tabela de Historico */}
             <h3>Historico de Cobrancas</h3>
             {loading ? (
                 <p>Carregando cobrancas...</p>
@@ -158,9 +168,23 @@ export const ChargesManager: React.FC = () => {
                                 <td>R$ {charge.amount.toFixed(2)}</td>
                                 <td>{charge.description}</td>
                                 <td>{new Date(charge.dueDate).toLocaleDateString()}</td>
-                                <td>{charge.status === 1 ? 'Pendente' : 'Pago'}</td>
                                 <td>
-                                    <button onClick={() => setSelectedPix(charge.pixQrCode)}>Ver Pix</button>
+                                    <strong style={{ color: charge.status === 2 ? 'green' : 'orange' }}>
+                                        {charge.status === 2 ? 'Pago' : 'Pendente'}
+                                    </strong>
+                                </td>
+                                <td>
+                                    <button onClick={() => setSelectedPix(charge.pixQrCode)} style={{ marginRight: '8px' }}>
+                                        Ver Pix
+                                    </button>
+                                    {charge.status !== 2 && (
+                                        <button
+                                            onClick={() => handleSimulatePayment(charge.id)}
+                                            style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
+                                        >
+                                            Simular Pagamento
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ))}

@@ -1,11 +1,10 @@
-using backend.Domain.DTOs;
 using backend.Domain.Entities;
 
-namespace backend.Domain.Interfaces;
-
-// Interface que estabelece o contrato para integracao com gateways de pagamento
-public interface IPaymentService
+namespace backend.Domain.Interfaces
 {
-    // Processa a emissao de cobranca e retorna a entidade Charge populada com dados de pagamento
-    Task<Charge> GeneratePaymentAsync(Client client, CreateChargeDto dto);
+    // Contrato para simulacao e integracao de gateways de pagamento
+    public interface IPaymentService
+    {
+        Task<Charge> CreateChargeAsync(Guid clientId, decimal amount, string description, DateTime dueDate);
+    }
 }
