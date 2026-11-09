@@ -1,70 +1,85 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
-import type { Client } from '../types';
+import type { Client, CreateClientDto } from '../types';
 
 export const ClientsManager: React.FC = () => {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [formData, setFormData] = useState({
+
+    // Estado do Campo de Busca (Nome ou CPF/CNPJ)
+    const [searchTerm, setSearchTerm] = useState<string>('');
+
+    // Estado do Formulário de Cadastro
+    const [formData, setFormData] = useState<CreateClientDto>({
         name: '',
         document: '',
         email: '',
         phone: '',
     });
 
-    // Busca a lista inicial de clientes cadastrados no backend .NET 8
-    const fetchClients = async () => {
+    // Carrega lista de clientes
+    const loadClients = async () => {
         try {
             setLoading(true);
             const response = await api.get<Client[]>('/clients');
             setClients(response.data);
         } catch (error) {
-            console.error('Erro ao buscar clientes:', error);
+            console.error('Erro ao carregar clientes:', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchClients();
+        loadClients();
     }, []);
 
-    // Trata a submissao do formulario com atualizacao instantanea da UI
+    // Trata submissão do formulário
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // Envia os dados para a API e obtém a entidade com o ID gerado pelo Postgres
-            const response = await api.post<Client>('/clients', formData);
-
-            // Atualiza a tabela instantaneamente no estado do React
-            setClients((prevClients) => [...prevClients, response.data]);
-
-            // Reseta os campos do formulario
+            await api.post('/clients', formData);
             setFormData({ name: '', document: '', email: '', phone: '' });
+            await loadClients();
         } catch (error) {
             console.error('Erro ao cadastrar cliente:', error);
         }
     };
 
+    // Filtra clientes por nome ou documento em tempo real
+    const filteredClients = useMemo(() => {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) return clients;
+
+        return clients.filter(
+            (client) =>
+                client.name.toLowerCase().includes(term) ||
+                client.document.toLowerCase().includes(term)
+        );
+    }, [clients, searchTerm]);
+
     return (
         <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h2>Gestao de Clientes</h2>
+            <h2>Gestão de Clientes</h2>
 
-            {/* Formulario de Cadastro */}
-            <form onSubmit={handleSubmit} style={{ marginBottom: '30px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Formulário de Cadastro */}
+            <form onSubmit={handleSubmit} style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
+                <h3>Novo Cliente</h3>
                 <input
                     type="text"
-                    placeholder="Nome"
+                    placeholder="Nome completo"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    style={{ padding: '8px' }}
                 />
                 <input
                     type="text"
-                    placeholder="CPF/CNPJ"
+                    placeholder="CPF ou CNPJ"
                     value={formData.document}
                     onChange={(e) => setFormData({ ...formData, document: e.target.value })}
                     required
+                    style={{ padding: '8px' }}
                 />
                 <input
                     type="email"
@@ -72,6 +87,7 @@ export const ClientsManager: React.FC = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    style={{ padding: '8px' }}
                 />
                 <input
                     type="text"
@@ -79,11 +95,27 @@ export const ClientsManager: React.FC = () => {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     required
+                    style={{ padding: '8px' }}
                 />
-                <button type="submit">Cadastrar Cliente</button>
+                <button type="submit" style={{ padding: '10px', background: '#28a745', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    Cadastrar Cliente
+                </button>
             </form>
 
-            {/* Tabela de Listagem */}
+            {/* Cabeçalho da Lista e Input de Busca */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0 }}>Clientes Cadastrados</h3>
+
+                <input
+                    type="text"
+                    placeholder="Buscar por Nome ou CPF/CNPJ..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ padding: '6px 12px', width: '260px' }}
+                />
+            </div>
+
+            {/* Tabela de Clientes */}
             {loading ? (
                 <p>Carregando clientes...</p>
             ) : (
@@ -91,22 +123,26 @@ export const ClientsManager: React.FC = () => {
                     <thead>
                         <tr style={{ background: '#f2f2f2' }}>
                             <th>Nome</th>
-                            <th>CPF/CNPJ</th>
+                            <th>CPF / CNPJ</th>
                             <th>E-mail</th>
                             <th>Telefone</th>
-                            <th>ID</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {clients.map((client) => (
-                            <tr key={client.id}>
-                                <td>{client.name}</td>
-                                <td>{client.document}</td>
-                                <td>{client.email}</td>
-                                <td>{client.phone}</td>
-                                <td><small>{client.id}</small></td>
+                        {filteredClients.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} style={{ textAlign: 'center', color: '#666' }}>Nenhum cliente encontrado.</td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredClients.map((client) => (
+                                <tr key={client.id}>
+                                    <td>{client.name}</td>
+                                    <td>{client.document}</td>
+                                    <td>{client.email}</td>
+                                    <td>{client.phone}</td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}

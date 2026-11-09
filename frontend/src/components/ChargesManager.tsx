@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import type { Charge, Client } from '../types';
 import { formatCurrency, maskCurrencyInput, parseCurrencyToNumber } from '../utils/formatters';
@@ -9,7 +9,10 @@ export const ChargesManager: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedPix, setSelectedPix] = useState<string | null>(null);
 
-    // Estado local para a digitacao do formulario (com valor inicial de moeda formatado)
+    // Estado do Filtro de Status ('all' | 'pending' | 'paid')
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+
+    // Estado local para a digitacao do formulario
     const [clientId, setClientId] = useState<string>('');
     const [rawAmountInput, setRawAmountInput] = useState<string>('');
     const [description, setDescription] = useState<string>('');
@@ -83,6 +86,15 @@ export const ChargesManager: React.FC = () => {
         }
     };
 
+    // Aplica o filtro de status em memoria na lista de cobrancas
+    const filteredCharges = useMemo(() => {
+        return charges.filter((charge) => {
+            if (statusFilter === 'pending') return charge.status === 1;
+            if (statusFilter === 'paid') return charge.status === 2;
+            return true; // 'all'
+        });
+    }, [charges, statusFilter]);
+
     return (
         <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
             <h2>Geracao de Cobrancas (Pix / Boleto)</h2>
@@ -155,8 +167,25 @@ export const ChargesManager: React.FC = () => {
                 </div>
             )}
 
+            {/* Cabecalho da Tabela e Barra de Filtros */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0 }}>Historico de Cobrancas</h3>
+
+                <div>
+                    <label style={{ marginRight: '8px', fontWeight: 'bold' }}>Filtrar por Status:</label>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        style={{ padding: '6px 12px' }}
+                    >
+                        <option value="all">Todas ({charges.length})</option>
+                        <option value="pending">Pendentes ({charges.filter(c => c.status === 1).length})</option>
+                        <option value="paid">Pagas ({charges.filter(c => c.status === 2).length})</option>
+                    </select>
+                </div>
+            </div>
+
             {/* Tabela de Historico */}
-            <h3>Historico de Cobrancas</h3>
             {loading ? (
                 <p>Carregando cobrancas...</p>
             ) : (
@@ -172,32 +201,38 @@ export const ChargesManager: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {charges.map((charge) => (
-                            <tr key={charge.id}>
-                                <td><small>{charge.externalId}</small></td>
-                                <td>{formatCurrency(charge.amount)}</td>
-                                <td>{charge.description}</td>
-                                <td>{new Date(charge.dueDate).toLocaleDateString('pt-BR')}</td>
-                                <td>
-                                    <strong style={{ color: charge.status === 2 ? 'green' : 'orange' }}>
-                                        {charge.status === 2 ? 'Pago' : 'Pendente'}
-                                    </strong>
-                                </td>
-                                <td>
-                                    <button onClick={() => setSelectedPix(charge.pixQrCode)} style={{ marginRight: '8px' }}>
-                                        Ver Pix
-                                    </button>
-                                    {charge.status !== 2 && (
-                                        <button
-                                            onClick={() => handleSimulatePayment(charge.id)}
-                                            style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
-                                        >
-                                            Simular Pagamento
-                                        </button>
-                                    )}
-                                </td>
+                        {filteredCharges.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>Nenhuma cobranca encontrada para este filtro.</td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredCharges.map((charge) => (
+                                <tr key={charge.id}>
+                                    <td><small>{charge.externalId}</small></td>
+                                    <td>{formatCurrency(charge.amount)}</td>
+                                    <td>{charge.description}</td>
+                                    <td>{new Date(charge.dueDate).toLocaleDateString('pt-BR')}</td>
+                                    <td>
+                                        <strong style={{ color: charge.status === 2 ? 'green' : 'orange' }}>
+                                            {charge.status === 2 ? 'Pago' : 'Pendente'}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <button onClick={() => setSelectedPix(charge.pixQrCode)} style={{ marginRight: '8px' }}>
+                                            Ver Pix
+                                        </button>
+                                        {charge.status !== 2 && (
+                                            <button
+                                                onClick={() => handleSimulatePayment(charge.id)}
+                                                style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
+                                            >
+                                                Simular Pagamento
+                                            </button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}
