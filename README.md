@@ -12,6 +12,14 @@ O Korpis é uma plataforma SaaS corporativa desenvolvida para o gerenciamento ce
 
 A solução foi projetada com foco em alta performance, resposta instantânea de leitura e interface intuitiva sem poluição visual.
 
+Tecnologias e Stack
+
+Backend & Persistência
+
+Frontend & Interface
+
+Ferramentas & Versionamento
+
 Arquitetura & Decisões Técnicas
 
 A aplicação é dividida em duas camadas independentes que se comunicam estritamente via HTTP/REST utilizando JSON:
@@ -21,6 +29,8 @@ Backend (API RESTful)
 Tecnologia: C# / .NET 8 / 10 (ASP.NET Core Web API)
 
 Persistência de Dados: Micro-ORM Dapper + PostgreSQL (Consultas SQL otimizadas)
+
+Ambiente de Banco: Conteinerizado via Docker Compose
 
 Segurança: Autenticação via Token JWT (Sessão de 8 horas)
 
@@ -36,70 +46,67 @@ Navegação: Sidebar Deslizante (Drawer via botão Hamburger ☰)
 
 Integração HTTP: Axios com interceptor de autorização automática (Bearer Token)
 
-Stack Tecnológica
-
-Camada
-
-Tecnologia
-
-Função Principal
-
-Backend
-
-.NET 8 / 10
-
-API RESTful, Regras de Negócio e Autenticação
-
-Micro-ORM
-
-Dapper
-
-Mapeamento SQL de Alta Performance
-
-Database
-
-PostgreSQL
-
-Persistência Relacional de Dados
-
-Frontend
-
-React 18 + TS
-
-Single Page Application Reativa
-
-Estilização
-
-Tailwind CSS
-
-Interface Corporativa Limpa (Light Mode)
-
-Build Tool
-
-Vite
-
-Bundler e Servidor de Desenvolvimento
-
 Estrutura do Repositório
 
-Korpis/
-├── backend/                  # Código-fonte da API ASP.NET Core
-│   ├── Controllers/          # Endpoints RESTful (Auth, Clients, Charges, Dashboard)
-│   ├── Models/               # Entidades de Domínio e DTOs
-│   ├── Repositories/         # Consultas SQL e Mapeamento via Dapper
-│   ├── Services/             # Regras Financeiras e Simulação Pix
-│   └── Program.cs            # Middlewares e Injeção de Dependências
-│
-├── frontend/                 # Aplicação Web (React + TypeScript)
-│   ├── src/
-│   │   ├── components/       # Módulos Visuais (ClientsManager, ChargesManager, DashboardView)
-│   │   ├── services/         # Cliente Axios e Conexão HTTP
-│   │   ├── types/            # Contratos de Tipagem TypeScript
-│   │   ├── utils/            # Formatadores de Moeda e Documentos
-│   │   └── App.tsx           # Componente Raiz e Controle da Sidebar
-│
-└── README.md                 # Documentação Oficial do Repositório
+Diretório / Arquivo
 
+Responsabilidade / Conteúdo
+
+backend/
+
+Código-fonte da API REST desenvolvida em C# / ASP.NET Core
+
+├── Controllers/
+
+Endpoints HTTP da API (Autenticação, Clientes, Cobranças e Dashboard)
+
+├── Models/
+
+Entidades de domínio da aplicação e DTOs de entrada/saída
+
+├── Repositories/
+
+Mapeamento e consultas SQL diretas via Dapper para o PostgreSQL
+
+├── Services/
+
+Regras de negócio financeiras e módulo de geração Pix
+
+└── Program.cs
+
+Configuração da API, injeção de dependências e middlewares
+
+frontend/
+
+Aplicação Single Page Application (SPA) em React + TypeScript
+
+└── src/components/
+
+Componentes visuais (ClientsManager, ChargesManager, DashboardView)
+
+└── src/services/
+
+Cliente Axios configurado com interceptor para Token JWT
+
+└── src/types/
+
+Definições e contratos de tipagem TypeScript
+
+└── src/utils/
+
+Funções utilitárias de formatação monetária e documentos
+
+└── src/App.tsx
+
+Componente principal e gerenciador do menu lateral (Drawer)
+
+docker-compose.yml
+
+Orquestração do banco de dados PostgreSQL em ambiente conteinerizado
+
+README.md
+
+Documentação oficial do projeto Korpis
 
 Especificação de Funcionalidades
 
@@ -113,7 +120,7 @@ Geração e validação de token JWT (Bearer Auth).
 
 Cadastro completo de clientes (Nome/Razão Social, CPF/CNPJ, E-mail, Telefone).
 
-Busca dinâmicamente filtrada em tempo real por nome ou documento.
+Busca dinamicamente filtrada em tempo real por nome ou documento.
 
 Edição e remoção de cadastros.
 
@@ -147,9 +154,16 @@ Pré-requisitos
 
 Node.js 18.0 ou superior
 
-Instância do PostgreSQL ativa
+Docker Desktop (opcional, para rodar o banco PostgreSQL)
 
-Passo 1: Executando o Backend (.NET)
+Passo 1: Subir o Banco de Dados (PostgreSQL via Docker)
+
+Caso utilize o Docker Compose para o banco de dados:
+
+docker compose up -d
+
+
+Passo 2: Executando o Backend (.NET)
 
 # 1. Entre na pasta do backend
 cd backend
@@ -163,7 +177,7 @@ dotnet run
 
 A API estará disponível em https://localhost:7001 ou http://localhost:5000.
 
-Passo 2: Executando o Frontend (React)
+Passo 3: Executando o Frontend (React)
 
 # 1. Entre na pasta do frontend (em outro terminal)
 cd frontend
