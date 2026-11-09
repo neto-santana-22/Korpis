@@ -7,18 +7,16 @@ export const ChargesManager: React.FC = () => {
     const [charges, setCharges] = useState<Charge[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [submitting, setSubmitting] = useState<boolean>(false);
     const [selectedPix, setSelectedPix] = useState<string | null>(null);
+    const [copied, setCopied] = useState<boolean>(false);
 
-    // Estado do Filtro de Status ('all' | 'pending' | 'paid' | 'canceled')
     const [statusFilter, setStatusFilter] = useState<string>('all');
-
-    // Estado local para a digitação do formulário
     const [clientId, setClientId] = useState<string>('');
     const [rawAmountInput, setRawAmountInput] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [dueDate, setDueDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    // Carrega clientes e cobranças do backend
     const loadData = async () => {
         try {
             setLoading(true);
@@ -32,7 +30,7 @@ export const ChargesManager: React.FC = () => {
                 setClientId(clientsRes.data[0].id);
             }
         } catch (error) {
-            console.error('Erro ao carregar dados de cobranças:', error);
+            console.error('Erro ao carregar cobranças:', error);
         } finally {
             setLoading(false);
         }
@@ -42,13 +40,10 @@ export const ChargesManager: React.FC = () => {
         loadData();
     }, []);
 
-    // Trata a digitação do campo de valor
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const masked = maskCurrencyInput(e.target.value);
-        setRawAmountInput(masked);
+        setRawAmountInput(maskCurrencyInput(e.target.value));
     };
 
-    // Submete a geração de nova cobrança
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const numericAmount = parseCurrencyToNumber(rawAmountInput);
@@ -59,6 +54,7 @@ export const ChargesManager: React.FC = () => {
         }
 
         try {
+            setSubmitting(true);
             const response = await api.post<Charge>('/charges/generate', {
                 clientId,
                 amount: numericAmount,
@@ -73,10 +69,11 @@ export const ChargesManager: React.FC = () => {
             await loadData();
         } catch (error) {
             console.error('Erro ao gerar cobrança:', error);
+        } finally {
+            setSubmitting(false);
         }
     };
 
-    // Simula a baixa de pagamento (Webhook)
     const handleSimulatePayment = async (chargeId: string) => {
         try {
             await api.post(`/charges/${chargeId}/pay`);
@@ -86,10 +83,8 @@ export const ChargesManager: React.FC = () => {
         }
     };
 
-    // Executa o cancelamento de uma cobrança pendente
     const handleCancelCharge = async (chargeId: string) => {
         if (!confirm('Deseja realmente cancelar esta cobrança?')) return;
-
         try {
             await api.post(`/charges/${chargeId}/cancel`);
             await loadData();
@@ -98,7 +93,14 @@ export const ChargesManager: React.FC = () => {
         }
     };
 
-    // Aplica o filtro de status em memória
+    const handleCopyPix = () => {
+        if (selectedPix) {
+            navigator.clipboard.writeText(selectedPix);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
     const filteredCharges = useMemo(() => {
         return charges.filter((charge) => {
             if (statusFilter === 'pending') return charge.status === 1;
@@ -108,164 +110,226 @@ export const ChargesManager: React.FC = () => {
         });
     }, [charges, statusFilter]);
 
-    // Retorna o rótulo e a cor do status
-    const getStatusBadge = (status: number) => {
+    const renderStatusBadge = (status: number) => {
         switch (status) {
             case 2:
-                return <strong style={{ color: 'green' }}>Pago</strong>;
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Pago
+                    </span>
+                );
             case 3:
-                return <strong style={{ color: 'red' }}>Cancelado</strong>;
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        Cancelado
+                    </span>
+                );
             default:
-                return <strong style={{ color: 'orange' }}>Pendente</strong>;
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        Pendente
+                    </span>
+                );
         }
     };
 
     return (
-        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h2>Geração de Cobranças (Pix / Boleto)</h2>
-
-            {/* Formulário de Emissão */}
-            <form onSubmit={handleSubmit} style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
-                <label>
-                    Cliente:
-                    <select
-                        value={clientId}
-                        onChange={(e) => setClientId(e.target.value)}
-                        style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-                        required
-                    >
-                        <option value="">Selecione um cliente</option>
-                        {clients.map((client) => (
-                            <option key={client.id} value={client.id}>
-                                {client.name} ({client.document})
-                            </option>
-                        ))}
-                    </select>
-                </label>
-
-                <label>
-                    Valor (R$):
-                    <input
-                        type="text"
-                        placeholder="R$ 0,00"
-                        value={rawAmountInput}
-                        onChange={handleAmountChange}
-                        style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-                        required
-                    />
-                </label>
-
-                <label>
-                    Descrição:
-                    <input
-                        type="text"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-                        required
-                    />
-                </label>
-
-                <label>
-                    Data de Vencimento:
-                    <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        style={{ width: '100%', padding: '8px', marginTop: '4px' }}
-                        required
-                    />
-                </label>
-
-                <button type="submit" style={{ padding: '10px', background: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                    Gerar Cobrança Pix
-                </button>
-            </form>
-
-            {/* Modal/Caixa exibindo o Pix gerado */}
-            {selectedPix && (
-                <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', padding: '15px', marginBottom: '20px', borderRadius: '4px' }}>
-                    <h3>Pix Gerado com Sucesso!</h3>
-                    <p><strong>Código Pix Copia e Cola:</strong></p>
-                    <textarea readOnly value={selectedPix} style={{ width: '100%', height: '60px' }} />
-                    <button onClick={() => setSelectedPix(null)} style={{ marginTop: '10px' }}>Fechar</button>
-                </div>
-            )}
-
-            {/* Cabeçalho da Tabela e Barra de Filtros */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0 }}>Histórico de Cobranças</h3>
-
-                <div>
-                    <label style={{ marginRight: '8px', fontWeight: 'bold' }}>Filtrar por Status:</label>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{ padding: '6px 12px' }}
-                    >
-                        <option value="all">Todas ({charges.length})</option>
-                        <option value="pending">Pendentes ({charges.filter(c => c.status === 1).length})</option>
-                        <option value="paid">Pagas ({charges.filter(c => c.status === 2).length})</option>
-                        <option value="canceled">Canceladas ({charges.filter(c => c.status === 3).length})</option>
-                    </select>
-                </div>
+        <div className="space-y-6 max-w-7xl mx-auto">
+            <div>
+                <h1 className="text-xl font-bold text-slate-900">Cobranças & Pagamentos</h1>
+                <p className="text-xs text-slate-500">Emita novas cobranças via Pix e consulte o histórico financeiro.</p>
             </div>
 
-            {/* Tabela de Histórico */}
-            {loading ? (
-                <p>Carregando cobranças...</p>
-            ) : (
-                <table border={1} cellPadding={8} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ background: '#f2f2f2' }}>
-                            <th>ID Externo</th>
-                            <th>Valor</th>
-                            <th>Descrição</th>
-                            <th>Vencimento</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredCharges.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>Nenhuma cobrança encontrada para este filtro.</td>
-                            </tr>
-                        ) : (
-                            filteredCharges.map((charge) => (
-                                <tr key={charge.id}>
-                                    <td><small>{charge.externalId}</small></td>
-                                    <td>{formatCurrency(charge.amount)}</td>
-                                    <td>{charge.description}</td>
-                                    <td>{new Date(charge.dueDate).toLocaleDateString('pt-BR')}</td>
-                                    <td>{getStatusBadge(charge.status)}</td>
-                                    <td>
-                                        <button onClick={() => setSelectedPix(charge.pixQrCode)} style={{ marginRight: '8px' }}>
-                                            Ver Pix
-                                        </button>
-                                        {charge.status === 1 && (
-                                            <>
-                                                <button
-                                                    onClick={() => handleSimulatePayment(charge.id)}
-                                                    style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer', marginRight: '6px' }}
-                                                >
-                                                    Simular Pagamento
-                                                </button>
-                                                <button
-                                                    onClick={() => handleCancelCharge(charge.id)}
-                                                    style={{ background: '#dc3545', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
-                                                >
-                                                    Cancelar
-                                                </button>
-                                            </>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            {/* Form Card */}
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="border-b border-slate-100 pb-3">
+                    <h2 className="text-sm font-semibold text-slate-900">Gerar Nova Cobrança (Pix)</h2>
+                    <p className="text-xs text-slate-500">Preencha os valores para gerar a chave copia e cola.</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Cliente</label>
+                            <select
+                                value={clientId}
+                                onChange={(e) => setClientId(e.target.value)}
+                                required
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                            >
+                                <option value="">Selecione um cliente</option>
+                                {clients.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name} ({c.document})</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Valor (R$)</label>
+                            <input
+                                type="text"
+                                placeholder="R$ 0,00"
+                                value={rawAmountInput}
+                                onChange={handleAmountChange}
+                                required
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Descrição</label>
+                            <input
+                                type="text"
+                                placeholder="Ex: Mensalidade do Serviço"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                required
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">Vencimento</label>
+                            <input
+                                type="date"
+                                value={dueDate}
+                                onChange={(e) => setDueDate(e.target.value)}
+                                required
+                                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <button
+                            type="submit"
+                            disabled={submitting || clients.length === 0}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-xs shadow-sm transition-colors disabled:opacity-50"
+                        >
+                            {submitting ? 'Gerando...' : 'Gerar Cobrança Pix'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* Modal / Alert Pix Gerado */}
+            {selectedPix && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-emerald-900">Código Pix Copia e Cola Gerado</h3>
+                        <button
+                            onClick={() => setSelectedPix(null)}
+                            className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 bg-white border border-slate-200 rounded"
+                        >
+                            Fechar
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            readOnly
+                            value={selectedPix}
+                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono text-slate-700"
+                        />
+                        <button
+                            onClick={handleCopyPix}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shrink-0 transition-colors"
+                        >
+                            {copied ? 'Copiado!' : 'Copiar'}
+                        </button>
+                    </div>
+                </div>
             )}
+
+            {/* Tabela Histórico */}
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden space-y-3">
+                <div className="p-4 pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-sm font-semibold text-slate-900">Histórico de Lançamentos</h2>
+                        <p className="text-xs text-slate-500">Lista completa de cobranças geradas.</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-500">Filtrar:</span>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-700 focus:outline-none"
+                        >
+                            <option value="all">Todas ({charges.length})</option>
+                            <option value="pending">Pendentes ({charges.filter(c => c.status === 1).length})</option>
+                            <option value="paid">Pagas ({charges.filter(c => c.status === 2).length})</option>
+                            <option value="canceled">Canceladas ({charges.filter(c => c.status === 3).length})</option>
+                        </select>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="p-8 text-center text-xs text-slate-500">Carregando cobranças...</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-slate-700">
+                            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider border-y border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3">Ref ID</th>
+                                    <th className="px-4 py-3">Valor</th>
+                                    <th className="px-4 py-3">Descrição</th>
+                                    <th className="px-4 py-3">Vencimento</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredCharges.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                                            Nenhuma cobrança registrada neste filtro.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredCharges.map((charge) => (
+                                        <tr key={charge.id} className="hover:bg-slate-50/80 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-slate-500">{charge.externalId.slice(0, 8)}...</td>
+                                            <td className="px-4 py-3 font-bold text-slate-900">{formatCurrency(charge.amount)}</td>
+                                            <td className="px-4 py-3 text-slate-600">{charge.description}</td>
+                                            <td className="px-4 py-3 text-slate-500">{new Date(charge.dueDate).toLocaleDateString('pt-BR')}</td>
+                                            <td className="px-4 py-3">{renderStatusBadge(charge.status)}</td>
+                                            <td className="px-4 py-3 text-right space-x-1.5">
+                                                <button
+                                                    onClick={() => setSelectedPix(charge.pixQrCode)}
+                                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium border border-slate-200 transition-colors"
+                                                >
+                                                    Ver Pix
+                                                </button>
+                                                {charge.status === 1 && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleSimulatePayment(charge.id)}
+                                                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded text-xs font-medium border border-emerald-200 transition-colors"
+                                                        >
+                                                            Simular Baixa
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleCancelCharge(charge.id)}
+                                                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-xs font-medium border border-rose-200 transition-colors"
+                                                        >
+                                                            Cancelar
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

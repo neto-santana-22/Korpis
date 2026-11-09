@@ -32,36 +32,36 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-            <div className="max-w-md w-full bg-slate-800 rounded-xl shadow-2xl border border-slate-700 p-8 space-y-6">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-extrabold text-white tracking-wider">KORPIS</h1>
-                    <p className="text-slate-400 text-sm">Sistema de Gestão Financeira & Cobranças</p>
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-xl shadow-md border border-slate-200 p-8 space-y-6">
+                <div className="text-center space-y-1.5">
+                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">KORPIS</h1>
+                    <p className="text-slate-500 text-xs">Gestão Financeira & Cobranças</p>
                 </div>
 
                 {errorMsg && (
-                    <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm text-center">
+                    <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-lg text-xs text-center font-medium">
                         {errorMsg}
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
                             E-mail de Acesso
                         </label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@korpis.com"
+                            placeholder="seu-email@empresa.com"
                             required
-                            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
                             Senha
                         </label>
                         <input
@@ -70,23 +70,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             required
-                            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600"
                         />
                     </div>
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg shadow-lg transition duration-200 disabled:opacity-50"
+                        className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
                     >
                         {loading ? 'Autenticando...' : 'Entrar no Sistema'}
                     </button>
                 </form>
-
-                <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-700/50">
-                    Credenciais padrão de teste: <br />
-                    <span className="text-slate-400">admin@korpis.com</span> / <span className="text-slate-400">admin123</span>
-                </div>
             </div>
         </div>
     );
