@@ -68,10 +68,30 @@ namespace backend.Controllers
                 return NotFound(new { message = "Cobranca nao encontrada." });
             }
 
-            // Altera o status da entidade para Pago (2) e define a data de pagamento
             charge.Status = ChargeStatus.Paid;
             charge.PaidAt = DateTime.UtcNow;
 
+            await _chargeRepository.UpdateAsync(charge);
+
+            return Ok(charge);
+        }
+
+        // Endpoint para cancelar uma cobranca pendente
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelCharge(Guid id)
+        {
+            var charge = await _chargeRepository.GetByIdAsync(id);
+            if (charge == null)
+            {
+                return NotFound(new { message = "Cobranca nao encontrada." });
+            }
+
+            if (charge.Status == ChargeStatus.Paid)
+            {
+                return BadRequest(new { message = "Nao e possivel cancelar uma cobranca ja paga." });
+            }
+
+            charge.Status = ChargeStatus.Canceled;
             await _chargeRepository.UpdateAsync(charge);
 
             return Ok(charge);

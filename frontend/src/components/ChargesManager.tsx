@@ -9,16 +9,16 @@ export const ChargesManager: React.FC = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [selectedPix, setSelectedPix] = useState<string | null>(null);
 
-    // Estado do Filtro de Status ('all' | 'pending' | 'paid')
+    // Estado do Filtro de Status ('all' | 'pending' | 'paid' | 'canceled')
     const [statusFilter, setStatusFilter] = useState<string>('all');
 
-    // Estado local para a digitacao do formulario
+    // Estado local para a digitação do formulário
     const [clientId, setClientId] = useState<string>('');
     const [rawAmountInput, setRawAmountInput] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [dueDate, setDueDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    // Carrega clientes e cobrancas do backend
+    // Carrega clientes e cobranças do backend
     const loadData = async () => {
         try {
             setLoading(true);
@@ -32,7 +32,7 @@ export const ChargesManager: React.FC = () => {
                 setClientId(clientsRes.data[0].id);
             }
         } catch (error) {
-            console.error('Erro ao carregar dados de cobrancas:', error);
+            console.error('Erro ao carregar dados de cobranças:', error);
         } finally {
             setLoading(false);
         }
@@ -42,19 +42,19 @@ export const ChargesManager: React.FC = () => {
         loadData();
     }, []);
 
-    // Trata a digitacao do campo de valor formatando em tempo real
+    // Trata a digitação do campo de valor
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const masked = maskCurrencyInput(e.target.value);
         setRawAmountInput(masked);
     };
 
-    // Submete a geracao de nova cobranca
+    // Submete a geração de nova cobrança
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const numericAmount = parseCurrencyToNumber(rawAmountInput);
 
         if (numericAmount <= 0) {
-            alert('Informe um valor valido maior que zero.');
+            alert('Informe um valor válido maior que zero.');
             return;
         }
 
@@ -72,7 +72,7 @@ export const ChargesManager: React.FC = () => {
             setDueDate(new Date().toISOString().split('T')[0]);
             await loadData();
         } catch (error) {
-            console.error('Erro ao gerar cobranca:', error);
+            console.error('Erro ao gerar cobrança:', error);
         }
     };
 
@@ -86,20 +86,45 @@ export const ChargesManager: React.FC = () => {
         }
     };
 
-    // Aplica o filtro de status em memoria na lista de cobrancas
+    // Executa o cancelamento de uma cobrança pendente
+    const handleCancelCharge = async (chargeId: string) => {
+        if (!confirm('Deseja realmente cancelar esta cobrança?')) return;
+
+        try {
+            await api.post(`/charges/${chargeId}/cancel`);
+            await loadData();
+        } catch (error) {
+            console.error('Erro ao cancelar cobrança:', error);
+        }
+    };
+
+    // Aplica o filtro de status em memória
     const filteredCharges = useMemo(() => {
         return charges.filter((charge) => {
             if (statusFilter === 'pending') return charge.status === 1;
             if (statusFilter === 'paid') return charge.status === 2;
-            return true; // 'all'
+            if (statusFilter === 'canceled') return charge.status === 3;
+            return true;
         });
     }, [charges, statusFilter]);
 
+    // Retorna o rótulo e a cor do status
+    const getStatusBadge = (status: number) => {
+        switch (status) {
+            case 2:
+                return <strong style={{ color: 'green' }}>Pago</strong>;
+            case 3:
+                return <strong style={{ color: 'red' }}>Cancelado</strong>;
+            default:
+                return <strong style={{ color: 'orange' }}>Pendente</strong>;
+        }
+    };
+
     return (
         <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h2>Geracao de Cobrancas (Pix / Boleto)</h2>
+            <h2>Geração de Cobranças (Pix / Boleto)</h2>
 
-            {/* Formulario de Emissao */}
+            {/* Formulário de Emissão */}
             <form onSubmit={handleSubmit} style={{ marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
                 <label>
                     Cliente:
@@ -131,7 +156,7 @@ export const ChargesManager: React.FC = () => {
                 </label>
 
                 <label>
-                    Descricao:
+                    Descrição:
                     <input
                         type="text"
                         value={description}
@@ -153,7 +178,7 @@ export const ChargesManager: React.FC = () => {
                 </label>
 
                 <button type="submit" style={{ padding: '10px', background: '#0066cc', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                    Gerar Cobranca Pix
+                    Gerar Cobrança Pix
                 </button>
             </form>
 
@@ -161,15 +186,15 @@ export const ChargesManager: React.FC = () => {
             {selectedPix && (
                 <div style={{ background: '#e6fffa', border: '1px solid #38b2ac', padding: '15px', marginBottom: '20px', borderRadius: '4px' }}>
                     <h3>Pix Gerado com Sucesso!</h3>
-                    <p><strong>Codigo Pix Copia e Cola:</strong></p>
+                    <p><strong>Código Pix Copia e Cola:</strong></p>
                     <textarea readOnly value={selectedPix} style={{ width: '100%', height: '60px' }} />
                     <button onClick={() => setSelectedPix(null)} style={{ marginTop: '10px' }}>Fechar</button>
                 </div>
             )}
 
-            {/* Cabecalho da Tabela e Barra de Filtros */}
+            {/* Cabeçalho da Tabela e Barra de Filtros */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0 }}>Historico de Cobrancas</h3>
+                <h3 style={{ margin: 0 }}>Histórico de Cobranças</h3>
 
                 <div>
                     <label style={{ marginRight: '8px', fontWeight: 'bold' }}>Filtrar por Status:</label>
@@ -181,29 +206,30 @@ export const ChargesManager: React.FC = () => {
                         <option value="all">Todas ({charges.length})</option>
                         <option value="pending">Pendentes ({charges.filter(c => c.status === 1).length})</option>
                         <option value="paid">Pagas ({charges.filter(c => c.status === 2).length})</option>
+                        <option value="canceled">Canceladas ({charges.filter(c => c.status === 3).length})</option>
                     </select>
                 </div>
             </div>
 
-            {/* Tabela de Historico */}
+            {/* Tabela de Histórico */}
             {loading ? (
-                <p>Carregando cobrancas...</p>
+                <p>Carregando cobranças...</p>
             ) : (
                 <table border={1} cellPadding={8} cellSpacing={0} style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: '#f2f2f2' }}>
                             <th>ID Externo</th>
                             <th>Valor</th>
-                            <th>Descricao</th>
+                            <th>Descrição</th>
                             <th>Vencimento</th>
                             <th>Status</th>
-                            <th>Acoes</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredCharges.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>Nenhuma cobranca encontrada para este filtro.</td>
+                                <td colSpan={6} style={{ textAlign: 'center', color: '#666' }}>Nenhuma cobrança encontrada para este filtro.</td>
                             </tr>
                         ) : (
                             filteredCharges.map((charge) => (
@@ -212,22 +238,26 @@ export const ChargesManager: React.FC = () => {
                                     <td>{formatCurrency(charge.amount)}</td>
                                     <td>{charge.description}</td>
                                     <td>{new Date(charge.dueDate).toLocaleDateString('pt-BR')}</td>
-                                    <td>
-                                        <strong style={{ color: charge.status === 2 ? 'green' : 'orange' }}>
-                                            {charge.status === 2 ? 'Pago' : 'Pendente'}
-                                        </strong>
-                                    </td>
+                                    <td>{getStatusBadge(charge.status)}</td>
                                     <td>
                                         <button onClick={() => setSelectedPix(charge.pixQrCode)} style={{ marginRight: '8px' }}>
                                             Ver Pix
                                         </button>
-                                        {charge.status !== 2 && (
-                                            <button
-                                                onClick={() => handleSimulatePayment(charge.id)}
-                                                style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
-                                            >
-                                                Simular Pagamento
-                                            </button>
+                                        {charge.status === 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleSimulatePayment(charge.id)}
+                                                    style={{ background: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer', marginRight: '6px' }}
+                                                >
+                                                    Simular Pagamento
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCancelCharge(charge.id)}
+                                                    style={{ background: '#dc3545', color: '#fff', border: 'none', padding: '4px 8px', cursor: 'pointer' }}
+                                                >
+                                                    Cancelar
+                                                </button>
+                                            </>
                                         )}
                                     </td>
                                 </tr>
